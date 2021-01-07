@@ -1,4 +1,5 @@
 import java.util.concurrent.Callable
+import kotlin.math.absoluteValue
 
 plugins {
     `java-library`
@@ -14,6 +15,12 @@ base.archivesBaseName = artifactId
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
 }
+
+val build = "release #${if (System.getenv("GITHUB_RUN_NUMBER") == null) "custom" else System.getenv("GITHUB_RUN_NUMBER")}"
+
+version = project.findProperty("base_version") as String + "." + (if (System.getenv("GITHUB_RUN_NUMBER") == null) ((kotlin.random.Random.nextInt().absoluteValue.toShort()) + 1000).toString() else System.getenv("GITHUB_RUN_NUMBER"))
+
+logger.lifecycle(":building mercury v${version}")
 
 configurations {
     register("jdt") {
@@ -176,6 +183,19 @@ publishing {
                     username = sonatypeUsername
                     password = sonatypePassword
                 }
+            }
+        }
+
+        maven(
+            "https://api.bintray.com/maven/" +
+                    "shedaniel/cloth/mercury/;" +
+                    "publish=1;" +
+                    "override=1"
+        ) {
+            name = "bintray"
+            credentials {
+                username = if (project.hasProperty("bintrayUser")) project.property("bintrayUser").toString() else System.getenv("BINTRAY_USER")
+                password = if (project.hasProperty("bintrayApiKey")) project.property("bintrayApiKey").toString() else System.getenv("BINTRAY_KEY")
             }
         }
     }
