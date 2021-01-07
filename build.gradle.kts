@@ -1,5 +1,4 @@
 import java.util.concurrent.Callable
-import kotlin.math.absoluteValue
 
 plugins {
     `java-library`
@@ -19,9 +18,12 @@ java {
 
 val build = "release #${if (System.getenv("GITHUB_RUN_NUMBER") == null) "custom" else System.getenv("GITHUB_RUN_NUMBER")}"
 
-version = project.findProperty("base_version") as String + "." + (if (System.getenv("GITHUB_RUN_NUMBER") == null) ((kotlin.random.Random.nextInt().absoluteValue.toShort()) + 1000).toString() else System.getenv("GITHUB_RUN_NUMBER")) + "-SNAPSHOT"
+version = project.findProperty("base_version") as String + "." + (if (System.getenv("GITHUB_RUN_NUMBER") == null) ((kotlin.random.Random.nextInt().toShort().absoluteValue()) + 1000).toString() else System.getenv("GITHUB_RUN_NUMBER"))
 
 logger.lifecycle(":building mercury v${version}")
+
+fun Short.absoluteValue(): Short =
+    if (this < 0) (-this).toShort() else this
 
 configurations {
     register("jdt") {
@@ -122,7 +124,7 @@ license {
     exclude("$group.$artifactId.jdt.".replace('.', '/'))
 }
 
-val isSnapshot = version.toString().endsWith("-SNAPSHOT")
+val isSnapshot = true
 
 bintray {
     user = if (project.hasProperty("bintrayUser")) project.property("bintrayUser").toString() else System.getenv("BINTRAY_USER")
