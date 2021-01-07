@@ -247,7 +247,8 @@ public final class Mercury {
         try {
             context.process(this.processors);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to process: " + sourceFilePath, e);
+            System.err.println("Failed to process: " + sourceFilePath);
+            e.printStackTrace();
         }
     }
 
