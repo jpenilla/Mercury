@@ -7,6 +7,7 @@ plugins {
     `maven-publish`
     id("uk.jamierocks.propatcher") version "1.3.1"
     id("net.minecrell.licenser") version "0.4.1"
+    id("com.jfrog.bintray") version "1.8.5"
 }
 
 val artifactId = name.toLowerCase()
@@ -123,6 +124,24 @@ license {
 
 val isSnapshot = version.toString().endsWith("-SNAPSHOT")
 
+bintray {
+    user = if (project.hasProperty("bintrayUser")) project.property("bintrayUser").toString() else System.getenv("BINTRAY_USER")
+    key = if (project.hasProperty("bintrayApiKey")) project.property("bintrayApiKey").toString() else System.getenv("BINTRAY_KEY")
+    setPublications("mavenJava")
+    publish = true
+    with(pkg) {
+        repo = "cloth"
+        name = "mercury"
+        userOrg = "shedaniel"
+        setLicenses("MPL-2.0")
+        with(version) {
+            name = project.version.toString()
+            vcsTag = project.version.toString()
+            vcsUrl = "https://github.com/architectury/Mercury.git"
+        }
+    }
+}
+
 publishing {
     publications {
         register<MavenPublication>("mavenJava") {
@@ -183,19 +202,6 @@ publishing {
                     username = sonatypeUsername
                     password = sonatypePassword
                 }
-            }
-        }
-
-        maven(
-            "https://api.bintray.com/maven/" +
-                    "shedaniel/cloth/mercury/;" +
-                    "publish=1;" +
-                    "override=1"
-        ) {
-            name = "bintray"
-            credentials {
-                username = if (project.hasProperty("bintrayUser")) project.property("bintrayUser").toString() else System.getenv("BINTRAY_USER")
-                password = if (project.hasProperty("bintrayApiKey")) project.property("bintrayApiKey").toString() else System.getenv("BINTRAY_KEY")
             }
         }
     }
