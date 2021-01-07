@@ -18,7 +18,7 @@ java {
 
 val build = "release #${if (System.getenv("GITHUB_RUN_NUMBER") == null) "custom" else System.getenv("GITHUB_RUN_NUMBER")}"
 
-version = project.findProperty("base_version") as String + "." + (if (System.getenv("GITHUB_RUN_NUMBER") == null) ((kotlin.random.Random.nextInt().absoluteValue.toShort()) + 1000).toString() else System.getenv("GITHUB_RUN_NUMBER"))
+version = project.findProperty("base_version") as String + "." + (if (System.getenv("GITHUB_RUN_NUMBER") == null) ((kotlin.random.Random.nextInt().absoluteValue.toShort()) + 1000).toString() else System.getenv("GITHUB_RUN_NUMBER")) + "-SNAPSHOT"
 
 logger.lifecycle(":building mercury v${version}")
 
