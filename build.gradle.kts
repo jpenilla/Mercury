@@ -6,8 +6,9 @@ plugins {
     `maven-publish`
     id("uk.jamierocks.propatcher") version "1.3.2"
     id("org.cadixdev.licenser") version "0.5.0"
-    id("com.jfrog.bintray") version "1.8.5"
 }
+
+val og_group: String by project
 
 val artifactId = name.toLowerCase()
 base.archivesBaseName = artifactId
@@ -16,9 +17,9 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
-val build = "release #${if (System.getenv("GITHUB_RUN_NUMBER") == null) "custom" else System.getenv("GITHUB_RUN_NUMBER")}"
+val build = "release #${System.getenv("GITHUB_RUN_NUMBER") ?: "custom"}"
 
-version = project.findProperty("base_version") as String + "." + (if (System.getenv("GITHUB_RUN_NUMBER") == null) ((kotlin.random.Random.nextInt().toShort().absoluteValue()) + 1000).toString() else System.getenv("GITHUB_RUN_NUMBER"))
+version = project.findProperty("base_version") as String + "." + (System.getenv("GITHUB_RUN_NUMBER") ?: "9999") + "-architectury"
 
 logger.lifecycle(":building mercury v${version}")
 
@@ -51,7 +52,7 @@ dependencies {
 }
 
 tasks.withType<Javadoc> {
-    exclude("${project.group}.$artifactId.jdt.".replace('.', '/'))
+    exclude("$og_group.$artifactId.jdt.".replace('.', '/'))
 }
 
 // Patched ImportRewrite from JDT
@@ -73,8 +74,8 @@ val extract = task<Copy>("extractJdt") {
 tasks["applyPatches"].inputs.files(extract)
 
 val renames = listOf(
-        "org.eclipse.jdt.core.dom.rewrite" to "$group.$artifactId.jdt.rewrite.imports",
-        "org.eclipse.jdt.internal.core.dom.rewrite.imports" to "$group.$artifactId.jdt.internal.rewrite.imports"
+        "org.eclipse.jdt.core.dom.rewrite" to "$og_group.$artifactId.jdt.rewrite.imports",
+        "org.eclipse.jdt.internal.core.dom.rewrite.imports" to "$og_group.$artifactId.jdt.internal.rewrite.imports"
 )
 
 fun createRenameTask(prefix: String, inputDir: File, outputDir: File, renames: List<Pair<String, String>>): Task
@@ -97,7 +98,7 @@ tasks["makePatches"].inputs.files(createRenameTask("un", jdtSrcDir, patches.targ
 sourceSets["main"].java.srcDirs(renameTask)
 
 tasks.jar.configure {
-    manifest.attributes(mapOf("Automatic-Module-Name" to "${project.group}.$artifactId"))
+    manifest.attributes(mapOf("Automatic-Module-Name" to "$og_group.$artifactId"))
 }
 
 tasks.withType<Test> {
@@ -121,28 +122,10 @@ artifacts {
 
 license {
     header = file("HEADER")
-    exclude("$group.$artifactId.jdt.".replace('.', '/'))
+    exclude("$og_group.$artifactId.jdt.".replace('.', '/'))
 }
 
 val isSnapshot = true
-
-bintray {
-    user = if (project.hasProperty("bintrayUser")) project.property("bintrayUser").toString() else System.getenv("BINTRAY_USER")
-    key = if (project.hasProperty("bintrayApiKey")) project.property("bintrayApiKey").toString() else System.getenv("BINTRAY_KEY")
-    setPublications("mavenJava")
-    publish = true
-    with(pkg) {
-        repo = "cloth"
-        name = "mercury"
-        userOrg = "shedaniel"
-        setLicenses("MPL-2.0")
-        with(version) {
-            name = project.version.toString()
-            vcsTag = project.version.toString()
-            vcsUrl = "https://github.com/architectury/Mercury.git"
-        }
-    }
-}
 
 publishing {
     publications {
@@ -194,15 +177,11 @@ publishing {
     }
 
     repositories {
-        val sonatypeUsername: String? by project
-        val sonatypePassword: String? by project
-        if (sonatypeUsername != null && sonatypePassword != null) {
-            val url = if (isSnapshot) "https://oss.sonatype.org/content/repositories/snapshots/"
-                else "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-            maven(url) {
+        if (System.getenv("MAVEN_PASS") != null) {
+            maven("https://deploy.shedaniel.me/") {
                 credentials {
-                    username = sonatypeUsername
-                    password = sonatypePassword
+                    username = "shedaniel"
+                    password = System.getenv("MAVEN_PASS")
                 }
             }
         }
