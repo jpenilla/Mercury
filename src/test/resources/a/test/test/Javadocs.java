@@ -8,8 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-package com.example.other;
+package test.test;
 
-public class OtherClass {
-
+public class Javadocs {
 }
