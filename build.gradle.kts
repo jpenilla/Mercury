@@ -2,7 +2,6 @@ import java.util.concurrent.Callable
 
 plugins {
     `java-library`
-    signing
     `maven-publish`
     id("uk.jamierocks.propatcher") version "1.3.2"
     id("org.cadixdev.licenser") version "0.5.0"
@@ -41,7 +40,7 @@ dependencies {
 }
 
 tasks.withType<Javadoc> {
-    exclude("${project.group}.$artifactId.jdt.".replace('.', '/'))
+    exclude("org.cadixdev.$artifactId.jdt.".replace('.', '/'))
 }
 
 // Patched ImportRewrite from JDT
@@ -63,8 +62,8 @@ val extract = task<Copy>("extractJdt") {
 tasks["applyPatches"].inputs.files(extract)
 
 val renames = listOf(
-        "org.eclipse.jdt.core.dom.rewrite" to "$group.$artifactId.jdt.rewrite.imports",
-        "org.eclipse.jdt.internal.core.dom.rewrite.imports" to "$group.$artifactId.jdt.internal.rewrite.imports"
+        "org.eclipse.jdt.core.dom.rewrite" to "org.cadixdev.$artifactId.jdt.rewrite.imports",
+        "org.eclipse.jdt.internal.core.dom.rewrite.imports" to "org.cadixdev.$artifactId.jdt.internal.rewrite.imports"
 )
 
 fun createRenameTask(prefix: String, inputDir: File, outputDir: File, renames: List<Pair<String, String>>): Task
@@ -87,11 +86,17 @@ tasks["makePatches"].inputs.files(createRenameTask("un", jdtSrcDir, patches.targ
 sourceSets["main"].java.srcDirs(renameTask)
 
 tasks.jar.configure {
-    manifest.attributes(mapOf("Automatic-Module-Name" to "${project.group}.$artifactId"))
+    manifest.attributes(mapOf("Automatic-Module-Name" to "org.cadixdev.$artifactId"))
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.withType<JavaCompile> {
+    if (JavaVersion.current().isJava9Compatible) {
+        options.release.set(8)
+    }
 }
 
 val sourceJar = task<Jar>("sourceJar") {
@@ -111,10 +116,8 @@ artifacts {
 
 license {
     header = file("HEADER")
-    exclude("$group.$artifactId.jdt.".replace('.', '/'))
+    exclude("org.cadixdev.$artifactId.jdt.".replace('.', '/'))
 }
-
-val isSnapshot = version.toString().endsWith("-SNAPSHOT")
 
 publishing {
     publications {
@@ -166,27 +169,20 @@ publishing {
     }
 
     repositories {
-        val sonatypeUsername: String? by project
-        val sonatypePassword: String? by project
-        if (sonatypeUsername != null && sonatypePassword != null) {
-            val url = if (isSnapshot) "https://oss.sonatype.org/content/repositories/snapshots/"
-                else "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-            maven(url) {
-                credentials {
-                    username = sonatypeUsername
-                    password = sonatypePassword
+        val maven_url: String? = System.getenv("MAVEN_URL")
+
+        if (maven_url != null) {
+            maven(url = maven_url) {
+                val mavenPass: String? = System.getenv("MAVEN_PASSWORD")
+                mavenPass?.let {
+                    credentials {
+                        username = System.getenv("MAVEN_USERNAME")
+                        password = mavenPass
+                    }
                 }
             }
         }
     }
-}
-
-signing {
-    sign(publishing.publications["mavenJava"])
-}
-
-tasks.withType<Sign> {
-    onlyIf { !isSnapshot }
 }
 
 operator fun Property<String>.invoke(v: String) = set(v)
