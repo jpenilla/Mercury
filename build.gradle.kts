@@ -5,6 +5,7 @@ plugins {
     `maven-publish`
     id("uk.jamierocks.propatcher") version "1.3.2"
     id("org.cadixdev.licenser") version "0.5.0"
+    id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
 val artifactId = name.toLowerCase()
@@ -15,8 +16,16 @@ java {
 }
 
 configurations {
-    register("jdt") {
+    register("jdtSources") {
         isTransitive = false
+    }
+    register("jdt")
+}
+configurations["api"].extendsFrom(configurations["jdt"])
+
+configurations.all {
+    resolutionStrategy {
+        failOnNonReproducibleResolution()
     }
 }
 
@@ -24,15 +33,33 @@ repositories {
     mavenCentral()
 }
 
-val jdt = "org.eclipse.jdt:org.eclipse.jdt.core:3.25.0"
+val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.26.0"
 dependencies {
-    api(jdt)
+    // JDT pulls all of these deps in, however they do not specify the exact version to use so they can get updated without us knowing.
+    // Depend specifically on these versions to prevent them from being updated under our feet.
+    // The POM is also patched later on to as this strict versioning does not make it through.
+    "jdt" (jdtVersion)
+    "jdt" ("org.eclipse.platform:org.eclipse.compare.core:[3.6.1000]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.commands:[3.10.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.contenttype:[3.7.1000]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.expressions:[3.7.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.filesystem:[1.9.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.jobs:[3.11.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.resources:[3.15.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.runtime:[3.22.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.app:[1.5.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.common:[3.15.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.preferences:[3.8.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.registry:[3.10.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.osgi:[3.16.300]")
+    "jdt" ("org.eclipse.platform:org.eclipse.team.core:[3.9.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.text:[3.12.0]")
 
     // TODO: Split in separate modules
     api("org.cadixdev:at:0.1.0-rc1")
     api("org.cadixdev:lorenz:0.5.7")
 
-    "jdt"("$jdt:sources")
+    "jdtSources"("$jdtVersion:sources")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -52,8 +79,8 @@ patches {
 val jdtSrcDir = file("jdt")
 
 val extract = task<Copy>("extractJdt") {
-    dependsOn(configurations["jdt"])
-    from(Callable { zipTree(configurations["jdt"].singleFile) })
+    dependsOn(configurations["jdtSources"])
+    from(Callable { zipTree(configurations["jdtSources"].singleFile) })
     destinationDir = patches.root
 
     include("org/eclipse/jdt/core/dom/rewrite/ImportRewrite.java")
@@ -94,10 +121,18 @@ tasks.withType<Test> {
 }
 
 tasks.withType<JavaCompile> {
-    if (JavaVersion.current().isJava9Compatible) {
-        options.release.set(8)
-    }
+    options.release.set(11)
 }
+
+tasks.jar {
+    archiveClassifier.set("thin")
+}
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+    configurations = listOf(project.configurations["jdt"])
+}
+tasks["build"].dependsOn(tasks.shadowJar)
 
 val sourceJar = task<Jar>("sourceJar") {
     classifier = "sources"
@@ -112,6 +147,7 @@ val javadocJar = task<Jar>("javadocJar") {
 artifacts {
     add("archives", sourceJar)
     add("archives", javadocJar)
+    add("archives", tasks.shadowJar)
 }
 
 license {
@@ -122,7 +158,7 @@ license {
 publishing {
     publications {
         register<MavenPublication>("mavenJava") {
-            from(components["java"])
+           from(components["java"])
             artifactId = base.archivesBaseName
 
             artifact(sourceJar)
@@ -163,6 +199,15 @@ publishing {
                         url("https://www.jamiemansfield.me/")
                         timezone("Europe/London")
                     }
+                }
+
+                withXml {
+                    // I pray that im being stupid that this isn't what you have to put up with when using kotlin
+                    (((asNode().get("dependencies") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList)
+                            .removeIf { node ->
+                                val group = ((((node as groovy.util.Node).get("groupId") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList).first() as String;
+                                group.startsWith("org.eclipse.")
+                            }
                 }
             }
         }
