@@ -6,6 +6,7 @@ plugins {
     `maven-publish`
     id("uk.jamierocks.propatcher") version "1.3.2"
     id("org.cadixdev.licenser") version "0.5.0"
+    id("com.github.johnrengelman.shadow") version "5.2.0"
 }
 
 val og_group: String by project
@@ -19,7 +20,7 @@ java {
 
 val build = "release #${System.getenv("GITHUB_RUN_NUMBER") ?: "custom"}"
 
-version = project.findProperty("base_version") as String + "." + (System.getenv("GITHUB_RUN_NUMBER") ?: "9999") + "-architectury"
+version = project.findProperty("base_version") as String + "." + (System.getenv("GITHUB_RUN_NUMBER") ?: "9999")
 
 logger.lifecycle(":building mercury v${version}")
 
@@ -36,9 +37,24 @@ repositories {
     mavenCentral()
 }
 
-val jdt = "org.eclipse.jdt:org.eclipse.jdt.core:3.24.0"
+val jdt = "org.eclipse.jdt:org.eclipse.jdt.core:3.25.0"
 dependencies {
-    api(jdt)
+    shadow(jdt)
+    shadow("org.eclipse.platform:org.eclipse.compare.core:[3.6.1000]")
+    shadow("org.eclipse.platform:org.eclipse.core.commands:[3.9.800]")
+    shadow("org.eclipse.platform:org.eclipse.core.contenttype:[3.7.900]")
+    shadow("org.eclipse.platform:org.eclipse.core.expressions:[3.7.100]")
+    shadow("org.eclipse.platform:org.eclipse.core.filesystem:[1.7.700]")
+    shadow("org.eclipse.platform:org.eclipse.core.jobs:[3.10.1100]")
+    shadow("org.eclipse.platform:org.eclipse.core.resources:[3.14.0]")
+    shadow("org.eclipse.platform:org.eclipse.core.runtime:[3.20.100]")
+    shadow("org.eclipse.platform:org.eclipse.equinox.app:[1.5.100]")
+    shadow("org.eclipse.platform:org.eclipse.equinox.common:[3.14.100]")
+    shadow("org.eclipse.platform:org.eclipse.equinox.preferences:[3.8.200]")
+    shadow("org.eclipse.platform:org.eclipse.equinox.registry:[3.10.100]")
+    shadow("org.eclipse.platform:org.eclipse.osgi:[3.16.200]")
+    shadow("org.eclipse.platform:org.eclipse.team.core:[3.8.1100]")
+    shadow("org.eclipse.platform:org.eclipse.text:[3.11.0]")
 
     // TODO: Split in separate modules
     api("org.cadixdev:at:0.1.0-rc1")
@@ -99,10 +115,22 @@ sourceSets["main"].java.srcDirs(renameTask)
 
 tasks.jar.configure {
     manifest.attributes(mapOf("Automatic-Module-Name" to "$og_group.$artifactId"))
+    archiveClassifier.set("raw")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.shadowJar.configure {
+    configurations = listOf(project.configurations.shadow.get())
+    archiveClassifier.set(null as String?)
+}
+
+tasks.build.configure { dependsOn(tasks.shadowJar) }
+
+tasks.withType<GenerateModuleMetadata>().configureEach {
+    enabled = false
 }
 
 val sourceJar = task<Jar>("sourceJar") {
@@ -127,12 +155,21 @@ license {
 
 val isSnapshot = true
 
+listOf(configurations.apiElements, configurations.runtimeElements).forEach { config ->
+    (components["java"] as AdhocComponentWithVariants).withVariantsFromConfiguration(config.get()) {
+        configurationVariant.artifacts.removeIf { artifact ->
+            artifact.file == tasks.jar.get().archiveFile.get().asFile
+        }
+    }
+}
+
 publishing {
     publications {
         register<MavenPublication>("mavenJava") {
             from(components["java"])
             artifactId = base.archivesBaseName
 
+            artifact(tasks.shadowJar)
             artifact(sourceJar)
             artifact(javadocJar)
 
