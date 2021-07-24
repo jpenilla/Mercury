@@ -126,6 +126,7 @@ tasks.withType<JavaCompile> {
 
 tasks.jar {
     archiveClassifier.set("thin")
+    enabled = false
 }
 
 tasks.shadowJar {
