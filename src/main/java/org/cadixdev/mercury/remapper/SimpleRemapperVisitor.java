@@ -249,6 +249,11 @@ class SimpleRemapperVisitor extends ASTVisitor {
      */
     private void checkLocalVariable(SimpleName node, IVariableBinding binding) {
         final ASTNode bindingNode = this.context.getCompilationUnit().findDeclaringNode(binding);
+        if (bindingNode == null) {
+            // Fabric: IDK if this is the correct fix but it will do for now.
+            return;
+        }
+
         final String localVariableName = (String) bindingNode.getProperty(LOCAL_VARIABLE_NAME_PROPERTY);
         if (localVariableName != null) {
             updateIdentifier(node, localVariableName);
