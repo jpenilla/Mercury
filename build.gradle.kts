@@ -156,6 +156,10 @@ license {
     exclude("org.cadixdev.$artifactId.jdt.".replace('.', '/'))
 }
 
+tasks.withType<GenerateModuleMetadata> {
+    enabled = false
+}
+
 publishing {
     publications {
         register<MavenPublication>("mavenJava") {
