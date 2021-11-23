@@ -1,43 +1,41 @@
-import java.util.concurrent.Callable
-
 plugins {
     `java-library`
     signing
     `maven-publish`
-    id("uk.jamierocks.propatcher") version "1.3.2"
-    id("org.cadixdev.licenser") version "0.5.0"
+    id("uk.jamierocks.propatcher") version "2.0.1"
+    id("org.cadixdev.licenser") version "0.6.1"
 }
 
 val artifactId = name.toLowerCase()
-base.archivesBaseName = artifactId
+base.archivesName.set(artifactId)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
 }
 
-configurations {
-    register("jdt") {
-        isTransitive = false
-    }
+val jdt: Configuration by configurations.creating {
+    isTransitive = false
 }
 
 repositories {
     mavenCentral()
 }
 
-val jdt = "org.eclipse.jdt:org.eclipse.jdt.core:3.25.0"
+val jdtCoordinates = "org.eclipse.jdt:org.eclipse.jdt.core:3.27.0"
 dependencies {
-    api(jdt)
+    api(jdtCoordinates)
 
     // TODO: Split in separate modules
     api("org.cadixdev:at:0.1.0-rc1")
-    api("org.cadixdev:lorenz:0.5.7")
+    api("org.cadixdev:lorenz:0.5.8")
 
-    "jdt"("$jdt:sources")
+    jdt("$jdtCoordinates:sources")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
-    testRuntimeOnly("org.cadixdev:lorenz-io-jam:0.5.7")
+    testRuntimeOnly("org.cadixdev:lorenz-io-jam:0.5.8")
 }
 
 tasks.withType<Javadoc> {
@@ -47,20 +45,24 @@ tasks.withType<Javadoc> {
 // Patched ImportRewrite from JDT
 patches {
     patches = file("patches")
-    root = file("build/jdt/original")
-    target = file("build/jdt/patched")
+    rootDir = file("build/jdt/original")
+    target = file("build/jdt/patched").also { it.mkdirs() }
 }
 val jdtSrcDir = file("jdt")
 
-val extract = task<Copy>("extractJdt") {
-    dependsOn(configurations["jdt"])
-    from(Callable { zipTree(configurations["jdt"].singleFile) })
-    destinationDir = patches.root
+val extractJdt = task<Copy>("extractJdt") {
+    from(jdt.elements.map { zipTree(it.single()) })
+    destinationDir = patches.rootDir
 
     include("org/eclipse/jdt/core/dom/rewrite/ImportRewrite.java")
     include("org/eclipse/jdt/internal/core/dom/rewrite/imports/*.java")
 }
-tasks["applyPatches"].inputs.files(extract)
+tasks.applyPatches {
+    inputs.files(extractJdt)
+}
+tasks.resetSources {
+    dependsOn(extractJdt)
+}
 
 val renames = listOf(
         "org.eclipse.jdt.core.dom.rewrite" to "$group.$artifactId.jdt.rewrite.imports",
@@ -94,23 +96,8 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-val sourceJar = task<Jar>("sourceJar") {
-    classifier = "sources"
-    from(sourceSets["main"].allSource)
-}
-
-val javadocJar = task<Jar>("javadocJar") {
-    classifier = "javadoc"
-    from(tasks["javadoc"])
-}
-
-artifacts {
-    add("archives", sourceJar)
-    add("archives", javadocJar)
-}
-
 license {
-    header = file("HEADER")
+    header.set(resources.text.fromFile(file("HEADER")))
     exclude("$group.$artifactId.jdt.".replace('.', '/'))
 }
 
@@ -120,10 +107,7 @@ publishing {
     publications {
         register<MavenPublication>("mavenJava") {
             from(components["java"])
-            artifactId = base.archivesBaseName
-
-            artifact(sourceJar)
-            artifact(javadocJar)
+            artifactId = base.archivesName.get()
 
             pom {
                 val name: String by project
