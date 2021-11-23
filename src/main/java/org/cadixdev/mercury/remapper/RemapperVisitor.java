@@ -39,6 +39,7 @@ import org.eclipse.jdt.core.dom.NameQualifiedType;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.QualifiedType;
+import org.eclipse.jdt.core.dom.RecordDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.TagElement;
@@ -429,6 +430,12 @@ class RemapperVisitor extends SimpleRemapperVisitor {
     }
 
     @Override
+    public boolean visit(RecordDeclaration node) {
+        pushImportContext(node.resolveBinding());
+        return true;
+    }
+
+    @Override
     public boolean visit(TypeDeclaration node) {
         pushImportContext(node.resolveBinding());
         return true;
@@ -446,6 +453,11 @@ class RemapperVisitor extends SimpleRemapperVisitor {
 
     @Override
     public void endVisit(EnumDeclaration node) {
+        this.importStack.pop();
+    }
+
+    @Override
+    public void endVisit(RecordDeclaration node) {
         this.importStack.pop();
     }
 
