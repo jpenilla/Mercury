@@ -37,7 +37,6 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
-import org.eclipse.jdt.internal.compiler.lookup.PackageBinding;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -249,6 +248,10 @@ class SimpleRemapperVisitor extends ASTVisitor {
      */
     private void checkLocalVariable(SimpleName node, IVariableBinding binding) {
         final ASTNode bindingNode = this.context.getCompilationUnit().findDeclaringNode(binding);
+        if (this.context.getMercury().isGracefulClasspathChecks() && bindingNode == null) {
+            return;
+        }
+
         final String localVariableName = (String) bindingNode.getProperty(LOCAL_VARIABLE_NAME_PROPERTY);
         if (localVariableName != null) {
             updateIdentifier(node, localVariableName);
