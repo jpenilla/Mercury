@@ -33,26 +33,26 @@ repositories {
     mavenCentral()
 }
 
-val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.26.0"
+val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.29.0"
 dependencies {
     // JDT pulls all of these deps in, however they do not specify the exact version to use so they can get updated without us knowing.
     // Depend specifically on these versions to prevent them from being updated under our feet.
     // The POM is also patched later on to as this strict versioning does not make it through.
     "jdt" (jdtVersion)
     "jdt" ("org.eclipse.platform:org.eclipse.compare.core:[3.6.1000]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.commands:[3.10.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.contenttype:[3.7.1000]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.expressions:[3.7.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.filesystem:[1.9.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.jobs:[3.11.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.resources:[3.15.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.runtime:[3.22.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.app:[1.5.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.common:[3.15.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.preferences:[3.8.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.registry:[3.10.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.osgi:[3.16.300]")
-    "jdt" ("org.eclipse.platform:org.eclipse.team.core:[3.9.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.commands:[3.10.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.contenttype:[3.8.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.expressions:[3.8.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.filesystem:[1.9.300]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.jobs:[3.12.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.resources:[3.16.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.runtime:[3.24.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.app:[1.6.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.common:[3.16.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.preferences:[3.9.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.registry:[3.11.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.osgi:[3.17.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.team.core:[3.9.300]")
     "jdt" ("org.eclipse.platform:org.eclipse.text:[3.12.0]")
 
     // TODO: Split in separate modules
