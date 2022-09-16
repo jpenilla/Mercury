@@ -37,7 +37,6 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
-import org.eclipse.jdt.internal.compiler.lookup.PackageBinding;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -249,8 +248,7 @@ class SimpleRemapperVisitor extends ASTVisitor {
      */
     private void checkLocalVariable(SimpleName node, IVariableBinding binding) {
         final ASTNode bindingNode = this.context.getCompilationUnit().findDeclaringNode(binding);
-        if (bindingNode == null) {
-            // Fabric: IDK if this is the correct fix but it will do for now.
+        if (this.context.getMercury().isGracefulClasspathChecks() && bindingNode == null) {
             return;
         }
 
