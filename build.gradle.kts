@@ -2,11 +2,10 @@ import java.util.concurrent.Callable
 
 plugins {
     `java-library`
-    signing
     `maven-publish`
     id("uk.jamierocks.propatcher") version "1.3.2"
     id("org.cadixdev.licenser") version "0.5.0"
-    id("com.github.johnrengelman.shadow") version "5.2.0"
+    id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
 val og_group: String by project
@@ -28,8 +27,16 @@ fun Short.absoluteValue(): Short =
     if (this < 0) (-this).toShort() else this
 
 configurations {
-    register("jdt") {
+    register("jdtSources") {
         isTransitive = false
+    }
+    register("jdt")
+}
+configurations["api"].extendsFrom(configurations["jdt"])
+
+configurations.all {
+    resolutionStrategy {
+        failOnNonReproducibleResolution()
     }
 }
 
@@ -37,30 +44,34 @@ repositories {
     mavenCentral()
 }
 
-val jdt = "org.eclipse.jdt:org.eclipse.jdt.core:3.25.0"
+val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.31.0"
 dependencies {
-    shadow(jdt)
-    shadow("org.eclipse.platform:org.eclipse.compare.core:[3.6.1000]")
-    shadow("org.eclipse.platform:org.eclipse.core.commands:[3.9.800]")
-    shadow("org.eclipse.platform:org.eclipse.core.contenttype:[3.7.900]")
-    shadow("org.eclipse.platform:org.eclipse.core.expressions:[3.7.100]")
-    shadow("org.eclipse.platform:org.eclipse.core.filesystem:[1.7.700]")
-    shadow("org.eclipse.platform:org.eclipse.core.jobs:[3.10.1100]")
-    shadow("org.eclipse.platform:org.eclipse.core.resources:[3.14.0]")
-    shadow("org.eclipse.platform:org.eclipse.core.runtime:[3.20.100]")
-    shadow("org.eclipse.platform:org.eclipse.equinox.app:[1.5.100]")
-    shadow("org.eclipse.platform:org.eclipse.equinox.common:[3.14.100]")
-    shadow("org.eclipse.platform:org.eclipse.equinox.preferences:[3.8.200]")
-    shadow("org.eclipse.platform:org.eclipse.equinox.registry:[3.10.100]")
-    shadow("org.eclipse.platform:org.eclipse.osgi:[3.16.200]")
-    shadow("org.eclipse.platform:org.eclipse.team.core:[3.8.1100]")
-    shadow("org.eclipse.platform:org.eclipse.text:[3.11.0]")
+    // JDT pulls all of these deps in, however they do not specify the exact version to use so they can get updated without us knowing.
+    // Depend specifically on these versions to prevent them from being updated under our feet.
+    // The POM is also patched later on to as this strict versioning does not make it through.
+    "jdt" (jdtVersion)
+    "jdt" ("org.eclipse.platform:org.eclipse.compare.core:[3.7.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.commands:[3.10.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.contenttype:[3.8.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.expressions:[3.8.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.filesystem:[1.9.500]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.jobs:[3.13.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.resources:[3.18.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.core.runtime:[3.26.0]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.app:[1.6.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.common:[3.16.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.preferences:[3.10.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.equinox.registry:[3.11.200]")
+    "jdt" ("org.eclipse.platform:org.eclipse.osgi:[3.18.100]")
+    "jdt" ("org.eclipse.platform:org.eclipse.team.core:[3.9.500]")
+    "jdt" ("org.eclipse.platform:org.eclipse.text:[3.12.200]")
+    "jdt" ("org.osgi:org.osgi.service.prefs:[1.1.2]")
 
     // TODO: Split in separate modules
     api("org.cadixdev:at:0.1.0-rc1")
     api("org.cadixdev:lorenz:0.5.7")
 
-    "jdt"("$jdt:sources")
+    "jdtSources"("$jdtVersion:sources")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -80,8 +91,8 @@ patches {
 val jdtSrcDir = file("jdt")
 
 val extract = task<Copy>("extractJdt") {
-    dependsOn(configurations["jdt"])
-    from(Callable { zipTree(configurations["jdt"].singleFile) })
+    dependsOn(configurations["jdtSources"])
+    from(Callable { zipTree(configurations["jdtSources"].singleFile) })
     destinationDir = patches.root
 
     include("org/eclipse/jdt/core/dom/rewrite/ImportRewrite.java")
@@ -116,14 +127,19 @@ sourceSets["main"].java.srcDirs(renameTask)
 tasks.jar.configure {
     manifest.attributes(mapOf("Automatic-Module-Name" to "$og_group.$artifactId"))
     archiveClassifier.set("raw")
+    enabled = false
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+tasks.withType<JavaCompile> {
+    options.release.set(11)
+}
+
 tasks.shadowJar.configure {
-    configurations = listOf(project.configurations.shadow.get())
+    configurations = listOf(project.configurations["jdt"])
     archiveClassifier.set(null as String?)
 }
 
@@ -146,6 +162,7 @@ val javadocJar = task<Jar>("javadocJar") {
 artifacts {
     add("archives", sourceJar)
     add("archives", javadocJar)
+    add("archives", tasks.shadowJar)
 }
 
 license {
@@ -166,10 +183,9 @@ listOf(configurations.apiElements, configurations.runtimeElements).forEach { con
 publishing {
     publications {
         register<MavenPublication>("mavenJava") {
-            from(components["java"])
+           from(components["java"])
             artifactId = base.archivesBaseName
 
-            artifact(tasks.shadowJar)
             artifact(sourceJar)
             artifact(javadocJar)
 
@@ -209,6 +225,15 @@ publishing {
                         timezone("Europe/London")
                     }
                 }
+
+                withXml {
+                    // I pray that im being stupid that this isn't what you have to put up with when using kotlin
+                    (((asNode().get("dependencies") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList)
+                            .removeIf { node ->
+                                val group = ((((node as groovy.util.Node).get("groupId") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList).first() as String;
+                                group.startsWith("org.eclipse.")
+                            }
+                }
             }
         }
     }
@@ -223,14 +248,6 @@ publishing {
             }
         }
     }
-}
-
-signing {
-    sign(publishing.publications["mavenJava"])
-}
-
-tasks.withType<Sign> {
-    onlyIf { !isSnapshot }
 }
 
 operator fun Property<String>.invoke(v: String) = set(v)

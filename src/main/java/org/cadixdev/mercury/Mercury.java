@@ -190,7 +190,7 @@ public final class Mercury {
     }
 
     private void run() throws Exception {
-        ASTParser parser = ASTParser.newParser(AST.JLS10);
+        ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
 
         // Set Java version
         Map<String, String> options = JavaCore.getOptions();
