@@ -1,0 +1,31 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+org.apiguardian:apiguardian-api:1.1.0=testCompileClasspath,testRuntimeClasspath
+org.cadixdev:at:0.1.0-rc1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.cadixdev:bombe:0.3.4=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.cadixdev:lorenz-io-jam:0.5.7=testRuntimeClasspath
+org.cadixdev:lorenz:0.5.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.jdt:org.eclipse.jdt.core:3.32.0=compileClasspath,jdt,jdtSources,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.commands:3.10.300=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.contenttype:3.8.200=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.expressions:3.8.200=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.filesystem:1.9.500=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.jobs:3.13.200=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.resources:3.18.100=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.core.runtime:3.26.100=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.equinox.app:1.6.200=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.equinox.common:3.17.0=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.equinox.preferences:3.10.100=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.equinox.registry:3.11.200=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.osgi:3.18.200=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.eclipse.platform:org.eclipse.text:3.12.300=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.junit.jupiter:junit-jupiter-api:5.7.0=testCompileClasspath,testRuntimeClasspath
+org.junit.jupiter:junit-jupiter-engine:5.7.0=testRuntimeClasspath
+org.junit.platform:junit-platform-commons:1.7.0=testCompileClasspath,testRuntimeClasspath
+org.junit.platform:junit-platform-engine:1.7.0=testRuntimeClasspath
+org.junit:junit-bom:5.7.0=testCompileClasspath,testRuntimeClasspath
+org.opentest4j:opentest4j:1.2.0=testCompileClasspath,testRuntimeClasspath
+org.osgi:org.osgi.service.prefs:1.1.2=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.osgi:osgi.annotation:8.0.1=compileClasspath,jdt,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+empty=annotationProcessor,shadow,testAnnotationProcessor

@@ -23,38 +23,22 @@ configurations {
 }
 configurations["api"].extendsFrom(configurations["jdt"])
 
-configurations.all {
-    resolutionStrategy {
-        failOnNonReproducibleResolution()
-    }
-}
-
 repositories {
     mavenCentral()
 }
 
-val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.31.0"
+// Update with: ./gradlew dependencies --write-locks
+dependencyLocking {
+    lockAllConfigurations()
+    lockMode.set(LockMode.STRICT)
+}
+
+val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.32.0"
 dependencies {
     // JDT pulls all of these deps in, however they do not specify the exact version to use so they can get updated without us knowing.
     // Depend specifically on these versions to prevent them from being updated under our feet.
     // The POM is also patched later on to as this strict versioning does not make it through.
     "jdt" (jdtVersion)
-    "jdt" ("org.eclipse.platform:org.eclipse.compare.core:[3.7.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.commands:[3.10.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.contenttype:[3.8.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.expressions:[3.8.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.filesystem:[1.9.500]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.jobs:[3.13.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.resources:[3.18.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.runtime:[3.26.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.app:[1.6.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.common:[3.16.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.preferences:[3.10.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.registry:[3.11.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.osgi:[3.18.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.team.core:[3.9.500]")
-    "jdt" ("org.eclipse.platform:org.eclipse.text:[3.12.200]")
-    "jdt" ("org.osgi:org.osgi.service.prefs:[1.1.2]")
 
     // TODO: Split in separate modules
     api("org.cadixdev:at:0.1.0-rc1")
@@ -140,6 +124,9 @@ tasks.jar {
 tasks.shadowJar {
     archiveClassifier.set("")
     configurations = listOf(project.configurations["jdt"])
+    relocate("org.apache", "org.cadixdev.mercury.shadow.org.apache")
+    relocate("org.eclipse", "org.cadixdev.mercury.shadow.org.eclipse")
+    relocate("org.osgi", "org.cadixdev.mercury.shadow.org.osgi")
 }
 tasks["build"].dependsOn(tasks.shadowJar)
 
