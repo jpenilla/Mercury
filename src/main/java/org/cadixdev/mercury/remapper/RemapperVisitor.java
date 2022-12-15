@@ -199,7 +199,7 @@ class RemapperVisitor extends SimpleRemapperVisitor {
     @Override
     public boolean visit(final TagElement tag) {
         // We don't want to visit the names of some Javadoc tags, since they can't be remapped.
-        if (TagElement.TAG_LINK.equals(tag.getTagName())) {
+        if (TagElement.TAG_LINK.equals(tag.getTagName()) || TagElement.TAG_SEE.equals(tag.getTagName())) {
             // With a @link tag, the first fragment will be a name
             if (tag.fragments().size() >= 1) {
                 final Object fragment = tag.fragments().get(0);

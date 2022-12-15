@@ -22,6 +22,8 @@ class JavadocTest {
      *
      * @return The name
      * @see ObfClass#name()
+     * @see com.example
+     * @see com.example.other.OtherClass
      */
     public String getName() {
         return this.core.name();
