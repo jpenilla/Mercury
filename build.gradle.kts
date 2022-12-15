@@ -3,13 +3,13 @@ import java.util.concurrent.Callable
 plugins {
     `java-library`
     `maven-publish`
-    id("uk.jamierocks.propatcher") version "1.3.2"
-    id("org.cadixdev.licenser") version "0.5.0"
+    id("uk.jamierocks.propatcher") version "2.0.1"
+    id("org.cadixdev.licenser") version "0.6.1"
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
 val artifactId = name.toLowerCase()
-base.archivesBaseName = artifactId
+base.archivesName.set(artifactId)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -74,7 +74,7 @@ tasks.withType<Javadoc> {
 // Patched ImportRewrite from JDT
 patches {
     patches = file("patches")
-    root = file("build/jdt/original")
+    rootDir = file("build/jdt/original")
     target = file("build/jdt/patched")
 }
 val jdtSrcDir = file("jdt")
@@ -82,12 +82,19 @@ val jdtSrcDir = file("jdt")
 val extract = task<Copy>("extractJdt") {
     dependsOn(configurations["jdtSources"])
     from(Callable { zipTree(configurations["jdtSources"].singleFile) })
-    destinationDir = patches.root
+    destinationDir = patches.rootDir
 
     include("org/eclipse/jdt/core/dom/rewrite/ImportRewrite.java")
     include("org/eclipse/jdt/internal/core/dom/rewrite/imports/*.java")
 }
 tasks["applyPatches"].inputs.files(extract)
+tasks["resetSources"].inputs.files(extract)
+
+tasks["resetSources"].dependsOn(tasks.register("ensureTargetDirectory") {
+    doLast {
+        patches.target.mkdirs()
+    }
+})
 
 val renames = listOf(
         "org.eclipse.jdt.core.dom.rewrite" to "org.cadixdev.$artifactId.jdt.rewrite.imports",
@@ -137,12 +144,12 @@ tasks.shadowJar {
 tasks["build"].dependsOn(tasks.shadowJar)
 
 val sourceJar = task<Jar>("sourceJar") {
-    classifier = "sources"
+    archiveClassifier.set("sources")
     from(sourceSets["main"].allSource)
 }
 
 val javadocJar = task<Jar>("javadocJar") {
-    classifier = "javadoc"
+    archiveClassifier.set("javadoc")
     from(tasks["javadoc"])
 }
 
@@ -153,7 +160,7 @@ artifacts {
 }
 
 license {
-    header = file("HEADER")
+    setHeader(file("HEADER"))
     exclude("org.cadixdev.$artifactId.jdt.".replace('.', '/'))
 }
 
@@ -165,7 +172,7 @@ publishing {
     publications {
         register<MavenPublication>("mavenJava") {
            from(components["java"])
-            artifactId = base.archivesBaseName
+            artifactId = base.archivesName.get()
 
             artifact(sourceJar)
             artifact(javadocJar)
@@ -211,7 +218,7 @@ publishing {
                     // I pray that im being stupid that this isn't what you have to put up with when using kotlin
                     (((asNode().get("dependencies") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList)
                             .removeIf { node ->
-                                val group = ((((node as groovy.util.Node).get("groupId") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList).first() as String;
+                                val group = ((((node as groovy.util.Node).get("groupId") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList).first() as String
                                 group.startsWith("org.eclipse.")
                             }
                 }
@@ -220,10 +227,10 @@ publishing {
     }
 
     repositories {
-        val maven_url: String? = System.getenv("MAVEN_URL")
+        val mavenUrl: String? = System.getenv("MAVEN_URL")
 
-        if (maven_url != null) {
-            maven(url = maven_url) {
+        if (mavenUrl != null) {
+            maven(url = mavenUrl) {
                 val mavenPass: String? = System.getenv("MAVEN_PASSWORD")
                 mavenPass?.let {
                     credentials {
