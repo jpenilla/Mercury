@@ -133,6 +133,7 @@ tasks.build.configure { dependsOn(tasks.shadowJar) }
 
 tasks.withType<GenerateModuleMetadata>().configureEach {
     enabled = false
+}
 
 tasks.shadowJar {
     archiveClassifier.set("")
