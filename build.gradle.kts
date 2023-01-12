@@ -3,15 +3,15 @@ import java.util.concurrent.Callable
 plugins {
     `java-library`
     `maven-publish`
-    id("uk.jamierocks.propatcher") version "1.3.2"
-    id("org.cadixdev.licenser") version "0.5.0"
+    id("uk.jamierocks.propatcher") version "2.0.1"
+    id("org.cadixdev.licenser") version "0.6.1"
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
 val og_group: String by project
 
 val artifactId = name.toLowerCase()
-base.archivesBaseName = artifactId
+base.archivesName.set(artifactId)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -34,38 +34,22 @@ configurations {
 }
 configurations["api"].extendsFrom(configurations["jdt"])
 
-configurations.all {
-    resolutionStrategy {
-        failOnNonReproducibleResolution()
-    }
-}
-
 repositories {
     mavenCentral()
 }
 
-val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.31.0"
+// Update with: ./gradlew dependencies --write-locks
+dependencyLocking {
+    lockAllConfigurations()
+    lockMode.set(LockMode.STRICT)
+}
+
+val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.32.0"
 dependencies {
     // JDT pulls all of these deps in, however they do not specify the exact version to use so they can get updated without us knowing.
     // Depend specifically on these versions to prevent them from being updated under our feet.
     // The POM is also patched later on to as this strict versioning does not make it through.
     "jdt" (jdtVersion)
-    "jdt" ("org.eclipse.platform:org.eclipse.compare.core:[3.7.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.commands:[3.10.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.contenttype:[3.8.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.expressions:[3.8.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.filesystem:[1.9.500]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.jobs:[3.13.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.resources:[3.18.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.core.runtime:[3.26.0]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.app:[1.6.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.common:[3.16.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.preferences:[3.10.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.equinox.registry:[3.11.200]")
-    "jdt" ("org.eclipse.platform:org.eclipse.osgi:[3.18.100]")
-    "jdt" ("org.eclipse.platform:org.eclipse.team.core:[3.9.500]")
-    "jdt" ("org.eclipse.platform:org.eclipse.text:[3.12.200]")
-    "jdt" ("org.osgi:org.osgi.service.prefs:[1.1.2]")
 
     // TODO: Split in separate modules
     api("org.cadixdev:at:0.1.0-rc1")
@@ -85,7 +69,7 @@ tasks.withType<Javadoc> {
 // Patched ImportRewrite from JDT
 patches {
     patches = file("patches")
-    root = file("build/jdt/original")
+    rootDir = file("build/jdt/original")
     target = file("build/jdt/patched")
 }
 val jdtSrcDir = file("jdt")
@@ -93,12 +77,19 @@ val jdtSrcDir = file("jdt")
 val extract = task<Copy>("extractJdt") {
     dependsOn(configurations["jdtSources"])
     from(Callable { zipTree(configurations["jdtSources"].singleFile) })
-    destinationDir = patches.root
+    destinationDir = patches.rootDir
 
     include("org/eclipse/jdt/core/dom/rewrite/ImportRewrite.java")
     include("org/eclipse/jdt/internal/core/dom/rewrite/imports/*.java")
 }
 tasks["applyPatches"].inputs.files(extract)
+tasks["resetSources"].inputs.files(extract)
+
+tasks["resetSources"].dependsOn(tasks.register("ensureTargetDirectory") {
+    doLast {
+        patches.target.mkdirs()
+    }
+})
 
 val renames = listOf(
         "org.eclipse.jdt.core.dom.rewrite" to "$og_group.$artifactId.jdt.rewrite.imports",
@@ -138,24 +129,26 @@ tasks.withType<JavaCompile> {
     options.release.set(11)
 }
 
-tasks.shadowJar.configure {
-    configurations = listOf(project.configurations["jdt"])
-    archiveClassifier.set(null as String?)
-}
-
 tasks.build.configure { dependsOn(tasks.shadowJar) }
 
 tasks.withType<GenerateModuleMetadata>().configureEach {
     enabled = false
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+    configurations = listOf(project.configurations["jdt"])
+    relocate("org.apache", "org.cadixdev.mercury.shadow.org.apache")
+    relocate("org.eclipse", "org.cadixdev.mercury.shadow.org.eclipse")
+    relocate("org.osgi", "org.cadixdev.mercury.shadow.org.osgi")
 }
 
 val sourceJar = task<Jar>("sourceJar") {
-    classifier = "sources"
+    archiveClassifier.set("sources")
     from(sourceSets["main"].allSource)
 }
 
 val javadocJar = task<Jar>("javadocJar") {
-    classifier = "javadoc"
+    archiveClassifier.set("javadoc")
     from(tasks["javadoc"])
 }
 
@@ -166,8 +159,8 @@ artifacts {
 }
 
 license {
-    header = file("HEADER")
-    exclude("$og_group.$artifactId.jdt.".replace('.', '/'))
+    setHeader(file("HEADER"))
+    exclude("org.cadixdev.$artifactId.jdt.".replace('.', '/'))
 }
 
 val isSnapshot = true
@@ -184,7 +177,7 @@ publishing {
     publications {
         register<MavenPublication>("mavenJava") {
            from(components["java"])
-            artifactId = base.archivesBaseName
+            artifactId = base.archivesName.get()
 
             artifact(sourceJar)
             artifact(javadocJar)
@@ -230,7 +223,7 @@ publishing {
                     // I pray that im being stupid that this isn't what you have to put up with when using kotlin
                     (((asNode().get("dependencies") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList)
                             .removeIf { node ->
-                                val group = ((((node as groovy.util.Node).get("groupId") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList).first() as String;
+                                val group = ((((node as groovy.util.Node).get("groupId") as groovy.util.NodeList).first() as groovy.util.Node).value() as groovy.util.NodeList).first() as String
                                 group.startsWith("org.eclipse.")
                             }
                 }

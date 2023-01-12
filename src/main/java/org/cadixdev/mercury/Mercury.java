@@ -77,6 +77,24 @@ public final class Mercury {
         this.sourceCompatibility = Objects.requireNonNull(sourceCompatibility, "sourceCompatibility");
     }
 
+	/**
+	 * Set the {@link Mercury#setSourceCompatibility(String)} using the value used for javac's --release option.
+	 * <p>If the release version is not supported, the latest supported version will be used.
+	 */
+	public void setSourceCompatibilityFromRelease(int release) {
+		final List<String> versions = JavaCore.getAllVersions();
+		String version = versions.get(versions.size() - 1);
+
+		for (String v : versions) {
+			if (v.equals(Integer.toString(release)) || v.equals("1." + release)) {
+				version = v;
+				break;
+			}
+		}
+
+		setSourceCompatibility(version);
+	}
+
     public Charset getEncoding() {
         return this.encoding;
     }

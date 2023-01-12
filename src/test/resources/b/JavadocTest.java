@@ -20,6 +20,8 @@ class JavadocTest {
      *
      * @return The name
      * @see Core#firstName()
+     * @see com.example
+     * @see net.example.newother.OtherClass
      */
     public String getName() {
         return this.core.firstName();
