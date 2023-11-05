@@ -5,7 +5,7 @@ plugins {
     `maven-publish`
     id("uk.jamierocks.propatcher") version "2.0.1"
     id("org.cadixdev.licenser") version "0.6.1"
-    id("com.github.johnrengelman.shadow") version "6.1.0"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
 val og_group: String by project
@@ -44,7 +44,7 @@ dependencyLocking {
     lockMode.set(LockMode.STRICT)
 }
 
-val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.32.0"
+val jdtVersion = "org.eclipse.jdt:org.eclipse.jdt.core:3.34.0"
 dependencies {
     // JDT pulls all of these deps in, however they do not specify the exact version to use so they can get updated without us knowing.
     // Depend specifically on these versions to prevent them from being updated under our feet.
@@ -126,7 +126,7 @@ tasks.withType<Test> {
 }
 
 tasks.withType<JavaCompile> {
-    options.release.set(11)
+    options.release.set(17)
 }
 
 tasks.build.configure { dependsOn(tasks.shadowJar) }

@@ -191,6 +191,7 @@ class RemapperVisitor extends SimpleRemapperVisitor {
                 // This is ignored because it should be covered by separate handling
                 // of QualifiedName (for full-qualified class references),
                 // PackageDeclaration and ImportDeclaration
+                break;
             default:
                 throw new IllegalStateException("Unhandled binding: " + binding.getClass().getSimpleName() + " (" + binding.getKind() + ')');
         }
